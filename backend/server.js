@@ -7,8 +7,9 @@ require("dotenv").config();
 const Contest = require("./models/contest");
 
 // Import fetchers
-// const fetchLeetCodeContests = require("./fetchers/leetcodeFetcher");
 const fetchCodeforcesContests = require("./fetchers/codeforcesFetcher");
+const fetchLeetCodeContestsFromClist = require("./fetchers/leetcodeClistFetcher");
+const fetchGfgContestsFromClist = require("./fetchers/gfgClistFetcher");
 
 const app = express();
 app.use(cors());
@@ -32,15 +33,27 @@ app.get("/", (req, res) => {
   res.send("Backend running!");
 });
 
-// Test route to fetch LeetCode contests manually (temporarily disabled)
-// app.get("/api/fetch/leetcode", async (req, res) => {
-//   try {
-//     await fetchLeetCodeContests();
-//     res.send("✅ LeetCode contests fetched and stored!");
-//   } catch (err) {
-//     res.status(500).send("❌ Error fetching LeetCode contests");
-//   }
-// });
+ 
+
+// Route to fetch LeetCode contests via clist.by
+app.get("/api/fetch/leetcode", async (req, res) => {
+  try {
+    await fetchLeetCodeContestsFromClist();
+    res.send("✅ LeetCode contests (clist.by) fetched and stored!");
+  } catch (err) {
+    res.status(500).send("❌ Error fetching LeetCode contests (clist.by)");
+  }
+});
+
+// Route to fetch GFG contests via clist.by
+app.get("/api/fetch/gfg", async (req, res) => {
+  try {
+    await fetchGfgContestsFromClist();
+    res.send("✅ GFG contests (clist.by) fetched and stored!");
+  } catch (err) {
+    res.status(500).send("❌ Error fetching GFG contests (clist.by)");
+  }
+});
 
 // Route to fetch Codeforces contests
 app.get("/api/fetch/codeforces", async (req, res) => {
