@@ -6,7 +6,8 @@ function toDate(value) {
   return isNaN(date.getTime()) ? null : date;
 }
 
-async function fetchLeetCodeContestsFromClist() {
+async function fetchLeetCodeContestsFromClist(options = {}) {
+  const { includeRecentPastDays = 0 } = options;
   try {
     const { CLIST_USERNAME, CLIST_API_KEY } = process.env;
     if (!CLIST_USERNAME || !CLIST_API_KEY) {
@@ -16,9 +17,14 @@ async function fetchLeetCodeContestsFromClist() {
 
     const params = new URLSearchParams({
       resource: "leetcode.com",
-      upcoming: "true",
       order_by: "start"
     });
+    if (includeRecentPastDays > 0) {
+      const startCutoff = new Date(Date.now() - includeRecentPastDays * 24 * 60 * 60 * 1000).toISOString();
+      params.set("start__gte", startCutoff);
+    } else {
+      params.set("upcoming", "true");
+    }
 
     const url = `https://clist.by/api/v2/contest/?${params.toString()}`;
 
@@ -37,11 +43,16 @@ async function fetchLeetCodeContestsFromClist() {
       // Retry using query params authentication
       const retryParams = new URLSearchParams({
         resource: "leetcode.com",
-        upcoming: "true",
         order_by: "start",
         username: CLIST_USERNAME,
         api_key: CLIST_API_KEY
       });
+      if (includeRecentPastDays > 0) {
+        const startCutoff = new Date(Date.now() - includeRecentPastDays * 24 * 60 * 60 * 1000).toISOString();
+        retryParams.set("start__gte", startCutoff);
+      } else {
+        retryParams.set("upcoming", "true");
+      }
       const retryUrl = `https://clist.by/api/v2/contest/?${retryParams.toString()}`;
       const retry = await fetch(retryUrl, {
         headers: {

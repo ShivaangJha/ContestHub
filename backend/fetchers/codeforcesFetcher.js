@@ -7,7 +7,8 @@ function toDateFromSeconds(seconds) {
   return new Date(Number(seconds) * 1000);
 }
 
-async function fetchCodeforcesContests() {
+async function fetchCodeforcesContests(options = {}) {
+  const { includeRecentPastDays = 0 } = options;
   try {
     const response = await fetch("https://codeforces.com/api/contest.list?gym=false", {
       method: "GET",
@@ -28,15 +29,30 @@ async function fetchCodeforcesContests() {
       return;
     }
 
-    // Keep only upcoming contests
-    const upcoming = data.result.filter(c => c.phase === "BEFORE");
+    const now = new Date();
+    const recentCutoffMs = includeRecentPastDays > 0
+      ? now.getTime() - includeRecentPastDays * 24 * 60 * 60 * 1000
+      : null;
 
-    if (upcoming.length === 0) {
-      console.log("⚠️ No upcoming Codeforces contests found");
+    // Keep upcoming + optionally recently finished contests
+    const filtered = data.result.filter(c => {
+      if (c.phase === "BEFORE") return true;
+      if (includeRecentPastDays > 0 && c.phase === "FINISHED") {
+        const start = toDateFromSeconds(c.startTimeSeconds);
+        const end = start && c.durationSeconds != null
+          ? new Date(start.getTime() + Number(c.durationSeconds) * 1000)
+          : start;
+        return end instanceof Date && !isNaN(end) && end.getTime() >= recentCutoffMs;
+      }
+      return false;
+    });
+
+    if (filtered.length === 0) {
+      console.log("⚠️ No matching Codeforces contests found");
       return;
     }
 
-    const mapped = upcoming.map(c => {
+    const mapped = filtered.map(c => {
       const start = toDateFromSeconds(c.startTimeSeconds);
       const end = start && c.durationSeconds != null
         ? new Date(start.getTime() + Number(c.durationSeconds) * 1000)
